@@ -5,5 +5,5 @@ imageVer: 2.11.13
 resources:
   cpu: "0.7"
   memory: "100Mi"
-buildCmd: "docker exec jenkins-build-my-go-app-main-4 sh -c 'go mod init my-lightweight-go-app && go build -v -o app-binary .'"
-testCmd: "docker exec jenkins-build-my-go-app-main-4 sh -c 'go test -v ./...'"
+buildCmd: "export GOCACHE=$WORKSPACE/.go-cache && export GOPATH=$WORKSPACE/.go-path && go mod init my-lightweight-go-app && go build -v -o app-binary ."
+testCmd: "export GOCACHE=$WORKSPACE/.go-cache && export GOPATH=$WORKSPACE/.go-path && go test -v ./..."
