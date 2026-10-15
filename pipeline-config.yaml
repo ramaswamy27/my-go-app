@@ -1,9 +1,9 @@
-stack: "go"
-stackVersion: "1.22-alpine"
-imageName: "my-lightweight-go-app"
-imageVer: 2.11.13
+dockerImage: "go"
+imageVersion: "1.22.-alpine"
+finalImageName: "my-lightweight-go-app"
+finalImageVer: 2.11.13
 resources:
   cpu: "1"
-  memory: "500Mi"
+  memory: "300Mi"
 buildCmd: "sh -c 'GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go get gopkg.in/yaml.v3 && GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go build -v -o app-binary .'"
 testCmd: "sh -c 'GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go test -v ./...'"
