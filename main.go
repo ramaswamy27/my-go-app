@@ -10,65 +10,78 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents your exact pipeline-config.yaml schema
-type Config struct {
+// PipelineConfig maps directly to your custom Jenkins YAML schema
+type PipelineConfig struct {
 	Stack        string            `yaml:"stack"`
 	StackVersion string            `yaml:"stackVersion"`
 	ImageName    string            `yaml:"imageName"`
-	ImageVer     interface{}       `yaml:"imageVer"` // Uses interface{} to safely handle float/string formats
+	ImageVer     interface{}       `yaml:"imageVer"` // Dynamic handling for numerical/string versions
 	Resources    map[string]string `yaml:"resources"`
 	BuildCmd     string            `yaml:"buildCmd"`
 	TestCmd      string            `yaml:"testCmd"`
 }
 
 func main() {
-	configFile := "pipeline-config.yaml"
-
-	// 1. Read the custom YAML file
-	data, err := os.ReadFile(configFile)
+	// 1. Load pipeline-config.yaml
+	yamlFile, err := os.ReadFile("pipeline-config.yaml")
 	if err != nil {
-		log.Fatalf("❌ Error: Could not find or read %s: %v\nMake sure this file exists in the current directory.", configFile, err)
+		log.Fatalf("❌ Failed to read pipeline-config.yaml: %v", err)
 	}
 
-	var config Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		log.Fatalf("❌ Error: Failed to parse YAML structure: %v", err)
+	var config PipelineConfig
+	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
+		log.Fatalf("❌ Failed to parse YAML: %v", err)
 	}
 
-	// 2. Validate configuration keys
-	fmt.Println("🔍 Validating Pipeline Configuration...")
-	if strings.TrimSpace(config.BuildCmd) == "" || config.BuildCmd == "<required build command>" {
-		log.Fatal("❌ Validation Failed: 'buildCmd' is empty or still contains the placeholder text.")
-	}
-	if strings.TrimSpace(config.TestCmd) == "" || config.TestCmd == "<test_command>" {
-		log.Fatal("❌ Validation Failed: 'testCmd' is empty or still contains the placeholder text.")
+	// 2. Resolve the exact Docker base image
+	baseImage := fmt.Sprintf("%s:%s", config.Stack, config.StackVersion)
+	fmt.Printf("🐳 Target Environment Image: %s\n", baseImage)
+	fmt.Printf("📦 Internal App Name:       %s:%v\n", config.ImageName, config.ImageVer)
+
+	// 3. Fail-fast validation for placeholders
+	if strings.Contains(config.BuildCmd, "<required") || strings.Contains(config.TestCmd, "<test") {
+		log.Fatalf("❌ Error: Please update placeholder build/test commands in your yaml configuration.")
 	}
 
-	fmt.Printf("📦 Stack: %s (%s) | Image: %s:%v\n", config.Stack, config.StackVersion, config.ImageName, config.ImageVer)
-	if cpu, ok := config.Resources["cpu"]; ok {
-		fmt.Printf("⚙️  Resource Allocations -> CPU: %s, Memory: %s\n", cpu, config.Resources["memory"])
+	// 4. Run Build and Test commands inside the designated Docker environment
+	commands := []struct {
+		name string
+		cmd  string
+	}{
+		{"Build Stage", config.BuildCmd},
+		{"Test Stage", config.TestCmd},
 	}
 
-	// 3. Execute Build Step
-	fmt.Printf("\n🔨 Running Build Stage: [%s]\n", config.BuildCmd)
-	if err := runCommand(config.BuildCmd); err != nil {
-		log.Fatalf("❌ Build Stage Failed: %v", err)
-	}
-	fmt.Println("✅ Build Completed Successfully!")
+	currentDir, _ := os.Getwd()
 
-	// 4. Execute Test Step
-	fmt.Printf("\n🧪 Running Test Stage: [%s]\n", config.TestCmd)
-	if err := runCommand(config.TestCmd); err != nil {
-		log.Fatalf("❌ Test Stage Failed: %v", err)
+	for _, step := range commands {
+		fmt.Printf("\n--- Running %s ---\n", step.name)
+		fmt.Printf("Command: %s\n\n", step.cmd)
+
+		// Spawns an ephemeral container matching the 'stack' environment, mounting your local working directory
+		dockerArgs := []string{
+			"run", "--rm",
+			"-v", fmt.Sprintf("%s:/app", currentDir),
+			"-w", "/app",
+		}
+
+		// Apply memory constraints if present in the YAML configurations
+		if mem, exists := config.Resources["memory"]; exists {
+			dockerArgs = append(dockerArgs, "-m", mem)
+		}
+
+		// Append the target engine image and runtime command execution logic
+		dockerArgs = append(dockerArgs, baseImage, "sh", "-c", step.cmd)
+
+		execCmd := exec.Command("docker", dockerArgs...)
+		execCmd.Stdout = os.Stdout
+		execCmd.Stderr = os.Stderr
+
+		if err := execCmd.Run(); err != nil {
+			log.Fatalf("❌ Pipeline execution stopped: %s encountered a failure: %v", step.name, err)
+		}
 	}
-	fmt.Println("✅ All Test Suites Passed Successfully!")
-	fmt.Println("\n🚀 Local Pipeline Run: SUCCESS")
+
+	fmt.Println("\n✅ Verification Successful! Local environment passed all definitions.")
 }
 
-// runCommand helper routes output streams cleanly to your console in real-time
-func runCommand(command string) error {
-	cmd := exec.Command("sh", "-c", command)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}

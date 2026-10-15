@@ -1,9 +1,9 @@
-stack: "python"
-stackVersion: "go-image:version"
+stack: "golang"
+stackVersion: "1.22-alpine"
 imageName: "my-lightweight-go-app"
-imageVer: 2.12.13
+imageVer: 2.11.13
 resources:
   cpu: "0.7"
   memory: "100Mi"
-buildCmd: "go build -v ./..."
+buildCmd: "go build -v -o app-binary ."
 testCmd: "go test -v ./..."
