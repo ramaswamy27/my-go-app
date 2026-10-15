@@ -1,4 +1,4 @@
-stack: "golang"
+stack: "go"
 stackVersion: "1.22-alpine"
 imageName: "my-lightweight-go-app"
 imageVer: 2.11.13
