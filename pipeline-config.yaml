@@ -1,5 +1,5 @@
 dockerImage: "go"
-imageVersion: "1.22.-alpine"
+imageVersion: "1.22-alpine"
 finalImageName: "my-lightweight-go-app"
 finalImageVer: 2.11.13
 resources:
