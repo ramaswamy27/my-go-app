@@ -5,5 +5,5 @@ imageVer: 2.11.13
 resources:
   cpu: "0.7"
   memory: "100Mi"
-buildCmd: "export GOCACHE=$WORKSPACE/.go-cache && export GOPATH=$WORKSPACE/.go-path && go mod init my-lightweight-go-app && go build -v -o app-binary ."
-testCmd: "export GOCACHE=$WORKSPACE/.go-cache && export GOPATH=$WORKSPACE/.go-path && go test -v ./..."
+buildCmd: "sh -c 'GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go mod init my-lightweight-go-app && GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go build -v -o app-binary .'"
+testCmd: "sh -c 'GOCACHE=$WORKSPACE/.go-cache GOPATH=$WORKSPACE/.go-path go test -v ./...'"
