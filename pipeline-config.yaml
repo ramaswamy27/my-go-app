@@ -5,5 +5,5 @@ imageVer: 2.11.13
 resources:
   cpu: "0.7"
   memory: "100Mi"
-buildCmd: "go build -v -o app-binary ."
+buildCmd: "go mod init my-lightweight-go-app && go build -v -o app-binary ."
 testCmd: "go test -v ./..."
